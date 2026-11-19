@@ -14,6 +14,7 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [imgFailed, setImgFailed] = useState(false)
+  const [saves, setSaves] = useState([]) // saved_spots rows for this spot I'm allowed to see
 
   const load = useCallback(async () => {
     const [{ data: s, error }, { data: n }] = await Promise.all([
@@ -34,6 +35,7 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
     if (!user) {
       setMyRating(null)
       setMyBust(null)
+      setSaves([])
       return
     }
     const [{ data: r }, { data: b }] = await Promise.all([
@@ -42,6 +44,8 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
     ])
     setMyRating(r?.score ?? null)
     setMyBust(b ? b.is_bust : null)
+    const { data: sv } = await supabase.from('saved_spots').select('user_id, list, profiles(username)').eq('spot_id', id)
+    setSaves(sv ?? [])
   }, [id, user])
 
   useEffect(() => {
@@ -132,6 +136,19 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
       setBusy(false)
     }
   }
+
+  const inList = (list) => saves.some((x) => x.user_id === user?.id && x.list === list)
+  async function toggleList(list) {
+    if (!guard()) return
+    setBusy(true)
+    const { error } = inList(list)
+      ? await supabase.from('saved_spots').delete().match({ user_id: user.id, spot_id: id, list })
+      : await supabase.from('saved_spots').insert({ user_id: user.id, spot_id: id, list })
+    setBusy(false)
+    if (error) return fail(error)
+    loadMine()
+  }
+  const othersNext = saves.filter((x) => x.list === 'next' && x.user_id !== user?.id).map((x) => x.profiles?.username ?? '?')
 
   async function deleteSpot() {
     if (!window.confirm(`Delete "${spot.name}" for everyone? This can't be undone.`)) return
@@ -236,6 +253,23 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
             </div>
             {myBust !== null && <p className="hint">Tap your vote again to take it back.</p>}
           </section>}
+
+          {/* MY LISTS */}
+          <section className="card save-card">
+            <div className="vote-row">
+              <button disabled={busy} className={`btn ${inList('favorite') ? 'btn-accent' : ''}`} onClick={() => toggleList('favorite')}>
+                {inList('favorite') ? '★ Favorite' : '☆ Favorite'}
+              </button>
+              <button disabled={busy} className={`btn ${inList('next') ? 'btn-accent' : ''}`} onClick={() => toggleList('next')}>
+                {inList('next') ? '✓ Skate next' : '→ Skate next'}
+              </button>
+            </div>
+            {othersNext.length > 0 && (
+              <p className="small">
+                <b>Your crew wants to skate this:</b> {othersNext.join(', ')}
+              </p>
+            )}
+          </section>
 
           {/* RATING */}
           <section className="card">

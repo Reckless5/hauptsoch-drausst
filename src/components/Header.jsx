@@ -19,6 +19,17 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
           + Spot
         </button>
         {user ? (
+          <>
+          <a
+            className="btn"
+            href="/crew"
+            onClick={(e) => {
+              e.preventDefault()
+              navigate('/crew')
+            }}
+          >
+            Crew
+          </a>
           <a
             className="btn"
             href="/account"
@@ -30,6 +41,7 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
           >
             {profile?.username ?? 'Account'}
           </a>
+          </>
         ) : (
           <button className="btn btn-ghost" onClick={onLogin}>
             Log in

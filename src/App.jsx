@@ -6,6 +6,7 @@ import SpotDetail from './components/SpotDetail.jsx'
 import AddSpot from './components/AddSpot.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import Account from './components/Account.jsx'
+import Crew from './components/Crew.jsx'
 
 function parseRoute() {
   const path = window.location.pathname
@@ -13,6 +14,7 @@ function parseRoute() {
   if (m) return { name: 'spot', id: m[1] }
   if (path.startsWith('/add')) return { name: 'add' }
   if (path.startsWith('/account')) return { name: 'account' }
+  if (path.startsWith('/crew')) return { name: 'crew' }
   return { name: 'home' }
 }
 
@@ -106,6 +108,7 @@ export default function App() {
         <AddSpot user={user} onRequireLogin={requireLogin} onCreated={loadSpots} />
       )}
       {authOpen && !user && <AuthModal invite={inviteCode} onClose={() => setAuthOpen(false)} />}
+      {route.name === 'crew' && <Crew user={user} spots={spots} onRequireLogin={requireLogin} />}
       {route.name === 'account' && (
         <Account user={user} profile={profile} onProfileChange={loadProfile} onRequireLogin={requireLogin} />
       )}

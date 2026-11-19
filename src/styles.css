@@ -332,3 +332,33 @@ h1.tiles { font-size: clamp(22px, 3.6vw, 34px); }
 .uses { font-family: var(--tile-font); font-size: 12px; white-space: nowrap; }
 .invite-row-actions { display: flex; gap: 14px; margin-top: 2px; }
 .header-actions a.btn { display: inline-flex; align-items: center; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* crew page */
+.crew-page { display: grid; gap: 16px; }
+.crew-page .card { display: grid; gap: 10px; }
+.crew-page .card p { margin: 0; }
+.tabs { display: flex; border: 2px solid var(--ink); border-radius: var(--radius); background: #fff; box-shadow: 3px 3px 0 var(--ink); }
+.tabs button { flex: 1; border: 0; background: none; padding: 10px 6px; font-family: var(--tile-font); font-size: 11px; text-transform: uppercase; position: relative; }
+.tabs button + button { border-left: 2px solid var(--ink); }
+.tabs button.on { background: var(--ink); color: var(--paper); }
+.badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; border-radius: 9px; background: var(--bust); color: #fff; font-style: normal; font-size: 10px; }
+.crew-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.crew-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--muted); }
+.crew-list.compact li { padding: 3px 0; }
+.crew-spot { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.crew-spot b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crew-spot:hover b { text-decoration: underline; }
+.who { font-size: 13px; text-align: right; }
+.who b { font-family: var(--tile-font); margin-right: 4px; }
+.row-actions { display: flex; gap: 10px; align-items: center; }
+.friend-cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.friend-cards > li { border: 2px solid var(--ink); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 6px; }
+.crew-toggle { display: grid; gap: 2px; text-align: left; background: none; border: 0; padding: 0; }
+.member-chips { list-style: none; padding: 0; margin: 0 0 8px; }
+.member-chips .chip { display: inline-flex; gap: 6px; align-items: center; }
+.member-chips .chip button { border: 0; background: none; padding: 0; font-size: 14px; line-height: 1; }
+select { font: inherit; border: 2px solid var(--ink); border-radius: var(--radius); padding: 9px 10px; background: #fff; flex: 1; }
+.save-card .vote-row { margin-top: 0; }
+@media (max-width: 820px) {
+  .header-actions a.btn { max-width: 90px; }
+}
