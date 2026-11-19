@@ -166,8 +166,8 @@ export default function Overview({ spots, loading }) {
         <div className="map-filter" role="group" aria-label="Show">
           {[
             { id: 'all', label: 'All' },
-            { id: 'spot', label: 'S', title: 'Street spots' },
-            { id: 'park', label: 'P', title: 'Skateparks' },
+            { id: 'spot', label: 'Spots', title: 'Street spots' },
+            { id: 'park', label: 'Parks', title: 'Skateparks' },
           ].map((f) => (
             <button
               key={f.id}
@@ -176,7 +176,6 @@ export default function Overview({ spots, loading }) {
               onClick={() => setFilter(f.id)}
             >
               {f.label}
-              {f.title && <span>{f.title}</span>}
             </button>
           ))}
         </div>
