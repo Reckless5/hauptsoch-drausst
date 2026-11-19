@@ -1,23 +1,7 @@
 import { useState } from 'react'
-import { supabase, PHOTO_BUCKET } from '../supabase.js'
+import { supabase, uploadPhoto } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
-
-/** shrink big phone photos before upload (falls back to the original file) */
-async function shrink(file, max = 1600) {
-  try {
-    const bmp = await createImageBitmap(file)
-    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(bmp.width * scale)
-    canvas.height = Math.round(bmp.height * scale)
-    canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height)
-    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.85))
-    return blob ? { blob, ext: 'jpg', type: 'image/jpeg' } : null
-  } catch {
-    return null
-  }
-}
 
 export default function AddSpot({ user, onRequireLogin, onCreated }) {
   const [name, setName] = useState('')
@@ -70,16 +54,7 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
     setBusy(true)
     try {
       let photo_url = null
-      if (file) {
-        const small = await shrink(file)
-        const ext = small?.ext ?? (file.name.split('.').pop() || 'jpg').toLowerCase()
-        const path = `${user.id}/${crypto.randomUUID()}.${ext}`
-        const { error: upErr } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .upload(path, small?.blob ?? file, { contentType: small?.type ?? file.type, upsert: false })
-        if (upErr) throw upErr
-        photo_url = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl
-      }
+      if (file) photo_url = await uploadPhoto(file, user.id)
       const { data, error: insErr } = await supabase
         .from('spots')
         .insert({

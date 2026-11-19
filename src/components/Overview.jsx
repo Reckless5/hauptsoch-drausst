@@ -94,7 +94,7 @@ export default function Overview({ spots, loading }) {
                 onMouseEnter={() => setHover(s.id)}
                 onMouseLeave={() => setHover(null)}
               >
-                <Thumb src={s.photo_url} alt={s.name} />
+                <Thumb src={s.cover_url} alt={s.name} />
                 <div className="spot-row-body">
                   <div className="spot-row-title">
                     <strong>{s.name}</strong>

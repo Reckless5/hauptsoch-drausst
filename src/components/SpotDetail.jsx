@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase, bustStatus } from '../supabase.js'
+import { supabase, bustStatus, uploadPhoto } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
 import { BustBadge, timeAgo } from './bits.jsx'
@@ -117,6 +117,22 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
     refresh()
   }
 
+  async function addPhoto(file) {
+    if (!file || !guard()) return
+    setBusy(true)
+    try {
+      const url = await uploadPhoto(file, user.id)
+      const { error } = await supabase.from('spot_photos').insert({ spot_id: id, user_id: user.id, url })
+      if (error) throw error
+      setImgFailed(false)
+      await refresh()
+    } catch (err) {
+      fail(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function deleteSpot() {
     if (!window.confirm(`Delete "${spot.name}" for everyone? This can't be undone.`)) return
     const { error } = await supabase.from('spots').delete().eq('id', id)
@@ -143,17 +159,32 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
       <BackLink />
       <div className="detail-grid">
         <div className="detail-media">
-          {spot.photo_url && !imgFailed ? (
-            <img
-              className="hero"
-              src={spot.photo_url}
-              alt={spot.name}
-              referrerPolicy="no-referrer"
-              onError={() => setImgFailed(true)}
-            />
-          ) : (
-            <div className="hero hero-empty">🛹 No photo yet</div>
-          )}
+          <div className="hero-wrap">
+            {spot.cover_url && !imgFailed ? (
+              <img
+                className="hero"
+                src={spot.cover_url}
+                alt={spot.name}
+                referrerPolicy="no-referrer"
+                onError={() => setImgFailed(true)}
+              />
+            ) : (
+              <div className="hero hero-empty">🛹 No photo yet</div>
+            )}
+            <label className={`photo-btn ${busy ? 'busy' : ''}`} onClick={(e) => { if (!user) { e.preventDefault(); onRequireLogin() } }}>
+              {busy ? 'Uploading…' : spot.cover_url && !imgFailed ? '📷 New photo' : '📷 Add photo'}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                disabled={busy}
+                onChange={(e) => {
+                  addPhoto(e.target.files?.[0])
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
           <MiniMap lat={spot.lat} lng={spot.lng} className="mini" />
           <a className="link" href={gmaps} target="_blank" rel="noreferrer">
             Directions in Google Maps ↗
