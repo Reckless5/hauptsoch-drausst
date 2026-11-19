@@ -4,7 +4,7 @@ import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
 import { BustBadge, BustStamp, Hours, KindTag, Tiles, timeAgo } from './bits.jsx'
 
-export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
+export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChanged }) {
   const [spot, setSpot] = useState(null)
   const [notes, setNotes] = useState([])
   const [myRating, setMyRating] = useState(null)
@@ -151,7 +151,7 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
   const othersNext = saves.filter((x) => x.list === 'next' && x.user_id !== user?.id).map((x) => x.profiles?.username ?? '?')
 
   async function deleteSpot() {
-    if (!window.confirm(`Delete "${spot.name}" for everyone? This can't be undone.`)) return
+    if (!window.confirm(`Delete "${spot.name}" for everyone? Its ratings, notes, photos and bust votes are deleted too. This can't be undone.`)) return
     const { error } = await supabase.from('spots').delete().eq('id', id)
     if (error) return fail(error)
     onChanged?.()
@@ -359,11 +359,11 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
               <>Added {new Date(spot.created_at).toLocaleDateString('de-AT')} by the community</>
             )}
             {spot.photo_credit && <> · Photo: {spot.photo_credit}</>}
-            {user && spot.created_by === user.id && (
+            {user && (spot.created_by === user.id || isAdmin) && (
               <>
                 {' · '}
                 <button className="link danger" onClick={deleteSpot}>
-                  delete spot
+                  {spot.kind === 'park' ? 'delete skatepark' : 'delete spot'}
                 </button>
               </>
             )}

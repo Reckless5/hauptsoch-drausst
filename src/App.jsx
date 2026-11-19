@@ -58,7 +58,7 @@ export default function App() {
     if (!session?.user) return setProfile(null)
     supabase
       .from('profiles')
-      .select('id, username, is_admin')
+      .select('id, username, is_admin, is_superadmin')
       .eq('id', session.user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data))
@@ -100,6 +100,7 @@ export default function App() {
           key={route.id}
           id={route.id}
           user={user}
+          isAdmin={!!profile?.is_admin}
           onRequireLogin={requireLogin}
           onChanged={loadSpots}
         />

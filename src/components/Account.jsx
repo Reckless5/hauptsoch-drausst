@@ -12,6 +12,53 @@ function inviteStatus(i) {
   return 'active'
 }
 
+function AdminManager({ user, setError }) {
+  const [people, setPeople] = useState([])
+  const [q, setQ] = useState('')
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('profiles').select('id, username, is_admin, is_superadmin, created_at').order('username')
+    setPeople(data ?? [])
+  }, [])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function toggle(p) {
+    const make = !p.is_admin
+    if (!window.confirm(make ? `Make ${p.username} an admin? Admins can delete any spot and create invite links.` : `Remove admin rights from ${p.username}?`)) return
+    const { error } = await supabase.rpc('set_admin', { target: p.id, make_admin: make })
+    if (error) setError(error.message)
+    load()
+  }
+
+  const shown = people.filter((p) => p.username.toLowerCase().includes(q.trim().toLowerCase()))
+  return (
+    <section className="card">
+      <div className="row-between">
+        <h2>Admins</h2>
+        <span className="muted small">{people.filter((p) => p.is_admin).length} admins · {people.length} members</span>
+      </div>
+      <p className="muted small">Only you (superadmin) can change this. Admins can delete any spot or park and create invite links.</p>
+      <input type="search" placeholder="Search members" value={q} onChange={(e) => setQ(e.target.value)} />
+      <ul className="crew-list">
+        {shown.map((p) => (
+          <li key={p.id}>
+            <span>
+              <b>{p.username}</b>{' '}
+              {p.is_superadmin ? <span className="tag">Superadmin</span> : p.is_admin ? <span className="tag">Admin</span> : null}
+            </span>
+            {p.is_superadmin || p.id === user.id ? null : (
+              <button className={`btn ${p.is_admin ? '' : 'btn-accent'}`} onClick={() => toggle(p)}>
+                {p.is_admin ? 'Remove admin' : 'Make admin'}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export default function Account({ user, profile, onProfileChange, onRequireLogin }) {
   const [username, setUsername] = useState(profile?.username ?? '')
   const [saved, setSaved] = useState(false)
@@ -124,12 +171,14 @@ export default function Account({ user, profile, onProfileChange, onRequireLogin
           </button>
         </form>
         <p className="muted small">
-          {user.email} · {profile?.is_admin ? 'Admin' : 'Member'}
+          {user.email} · {profile?.is_superadmin ? 'Superadmin' : profile?.is_admin ? 'Admin' : 'Member'}
         </p>
         <button className="link" onClick={() => supabase.auth.signOut().then(() => navigate('/'))}>
           Log out
         </button>
       </section>
+
+      {profile?.is_superadmin && <AdminManager user={user} setError={setError} />}
 
       {profile?.is_admin && (
         <section className="card">
