@@ -8,7 +8,7 @@ const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'spot', label: 'Street spots' },
   { id: 'park', label: 'Skateparks' },
-  { id: 'safe', label: 'Skateable' },
+  { id: 'safe', label: 'Not bust' },
   { id: 'bust', label: 'Bust' },
 ]
 
@@ -19,7 +19,7 @@ const SORTS = [
 ]
 
 // survives navigating to a spot and back
-const saved = { q: '', filter: 'all', sort: 'name', view: 'list' }
+const saved = { q: '', filter: 'all', sort: 'name', view: 'map' }
 
 export default function Overview({ spots, loading }) {
   const [q, setQ] = useState(saved.q)
@@ -98,13 +98,13 @@ export default function Overview({ spots, loading }) {
                 <div className="spot-row-body">
                   <div className="spot-row-title">
                     <strong>{s.name}</strong>
-                    {s.kind === 'park' && <span className="tag">Park</span>}
+                    <span className={`kind-dot ${s.kind}`}>{s.kind === 'park' ? 'P' : 'S'}</span>
                   </div>
                   {s.description && <p className="spot-row-desc">{s.description}</p>}
                   <div className="spot-row-meta">
                     <RatingPill avg={s.avg_rating} count={s.rating_count} />
                     <BustBadge spot={s} small />
-                    {s.note_count > 0 && <span className="muted">💬 {s.note_count}</span>}
+                    {s.note_count > 0 && <span className="muted">{s.note_count} note{s.note_count === 1 ? '' : 's'}</span>}
                   </div>
                 </div>
               </a>
@@ -117,9 +117,9 @@ export default function Overview({ spots, loading }) {
       <section className="map-panel">
         <SpotMap spots={shown} onSelect={open} highlightId={hover} />
         <div className="legend">
-          <span><i style={{ background: '#3ddc84' }} /> Skateable</span>
-          <span><i style={{ background: '#ff4d2e' }} /> Bust</span>
-          <span><i style={{ background: '#f5c518' }} /> No reports</span>
+          <span><b className="pin pin-spot pin-unknown">S</b> Street spot</span>
+          <span><b className="pin pin-park pin-unknown">P</b> Skatepark</span>
+          <span><b className="pin pin-spot pin-bust">S<i>!</i></b> Bust</span>
         </div>
       </section>
 

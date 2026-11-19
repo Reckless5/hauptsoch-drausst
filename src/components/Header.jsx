@@ -16,7 +16,7 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
       </a>
       <div className="header-actions">
         <button className="btn btn-accent" onClick={onAdd}>
-          + Add spot
+          + Spot
         </button>
         {user ? (
           <div className="user-chip">

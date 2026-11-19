@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase, uploadPhoto } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
+import { Tiles } from './bits.jsx'
 
 export default function AddSpot({ user, onRequireLogin, onCreated }) {
   const [name, setName] = useState('')
@@ -17,7 +18,7 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
   if (!user)
     return (
       <main className="detail narrow">
-        <h1>Add a spot</h1>
+        <Tiles as="h1" text="ADD A SPOT" />
         <p>You need to be logged in to add spots.</p>
         <button className="btn btn-accent" onClick={onRequireLogin}>
           Log in / sign up
@@ -79,7 +80,7 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
 
   return (
     <main className="detail narrow">
-      <h1>Add a spot</h1>
+      <Tiles as="h1" text="ADD A SPOT" />
       <form className="add-form" onSubmit={submit}>
         <label>
           Name
@@ -110,10 +111,10 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
           <div className="row-between">
             <span>Location</span>
             <button type="button" className="link" onClick={locate} disabled={locating}>
-              {locating ? 'Locating…' : '📍 Use my location'}
+              {locating ? 'Locating…' : 'Use my location'}
             </button>
           </div>
-          <MiniMap lat={pos?.lat} lng={pos?.lng} onPick={(lat, lng) => setPos({ lat, lng })} className="pick" />
+          <MiniMap lat={pos?.lat} lng={pos?.lng} kind={kind} onPick={(lat, lng) => setPos({ lat, lng })} className="pick" />
           <span className="hint">{pos ? `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)} – tap to move` : 'Tap the map to drop the pin.'}</span>
         </div>
 

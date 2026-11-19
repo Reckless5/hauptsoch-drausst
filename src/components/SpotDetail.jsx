@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase, bustStatus, uploadPhoto } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
-import { BustBadge, timeAgo } from './bits.jsx'
+import { BustBadge, BustStamp, Hours, KindTag, Tiles, timeAgo } from './bits.jsx'
 
 export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
   const [spot, setSpot] = useState(null)
@@ -169,10 +169,11 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
                 onError={() => setImgFailed(true)}
               />
             ) : (
-              <div className="hero hero-empty">🛹 No photo yet</div>
+              <div className="hero hero-empty">no photo yet</div>
             )}
+            <BustStamp spot={spot} />
             <label className={`photo-btn ${busy ? 'busy' : ''}`} onClick={(e) => { if (!user) { e.preventDefault(); onRequireLogin() } }}>
-              {busy ? 'Uploading…' : spot.cover_url && !imgFailed ? '📷 New photo' : '📷 Add photo'}
+              {busy ? 'Uploading…' : spot.cover_url && !imgFailed ? '+ New photo' : '+ Add photo'}
               <input
                 type="file"
                 accept="image/*"
@@ -185,7 +186,7 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
               />
             </label>
           </div>
-          <MiniMap lat={spot.lat} lng={spot.lng} className="mini" />
+          <MiniMap lat={spot.lat} lng={spot.lng} kind={spot.kind} status={bust} className="mini" />
           <a className="link" href={gmaps} target="_blank" rel="noreferrer">
             Directions in Google Maps ↗
           </a>
@@ -193,38 +194,49 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
 
         <div className="detail-info">
           <div className="detail-head">
-            <span className="tag">{spot.kind === 'park' ? 'Skatepark' : 'Street spot'}</span>
-            <h1>{spot.name}</h1>
+            <KindTag kind={spot.kind} />
+            <Tiles as="h1" text={spot.name} className="spot-title" />
+            {bust !== 'none' && <div className={`bust-line ${bust}`}>
+              <BustBadge spot={spot} />
+              <span>
+                {Number(spot.bust_yes)} say bust · {Number(spot.bust_no)} say skateable
+              </span>
+            </div>}
             {spot.description && <p className="desc">{spot.description}</p>}
           </div>
 
-          {/* BUST FLAG */}
-          <section className={`card bust-card ${bust}`}>
+          {spot.kind === 'park' && (
+            <section className="card">
+              <h2>Opening hours</h2>
+              <Hours text={spot.opening_hours} />
+            </section>
+          )}
+
+          {/* BUST FLAG (street spots only) */}
+          {bust !== 'none' && <section className={`card bust-card ${bust}`}>
             <div className="row-between">
               <h2>Bust?</h2>
               <BustBadge spot={spot} />
             </div>
-            <p className="muted">
-              {Number(spot.bust_yes)} say bust · {Number(spot.bust_no)} say skateable
-            </p>
+            <p className="muted">Was security there last time? Vote so others know.</p>
             <div className="vote-row">
               <button
                 disabled={busy}
                 className={`btn vote-bust ${myBust === true ? 'on' : ''}`}
                 onClick={() => voteBust(true)}
               >
-                🚨 It's a bust
+                It's a bust
               </button>
               <button
                 disabled={busy}
                 className={`btn vote-safe ${myBust === false ? 'on' : ''}`}
                 onClick={() => voteBust(false)}
               >
-                ✓ Skateable
+                Skateable
               </button>
             </div>
             {myBust !== null && <p className="hint">Tap your vote again to take it back.</p>}
-          </section>
+          </section>}
 
           {/* RATING */}
           <section className="card">
@@ -306,9 +318,12 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
                   Vienna Spotmap
                 </a>
               </>
+            ) : spot.source === 'openstreetmap' ? (
+              <>Data © OpenStreetMap contributors</>
             ) : (
               <>Added {new Date(spot.created_at).toLocaleDateString('de-AT')} by the community</>
             )}
+            {spot.photo_credit && <> · Photo: {spot.photo_credit}</>}
             {user && spot.created_by === user.id && (
               <>
                 {' · '}

@@ -3,13 +3,12 @@ import L from 'leaflet'
 import { bustStatus } from '../supabase.js'
 
 const VIENNA = [48.2082, 16.3738]
-const COLORS = { bust: '#ff4d2e', safe: '#3ddc84', unknown: '#f5c518' }
 
 function tiles(map) {
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
-    className: 'dark-tiles',
+    className: 'ink-tiles',
   }).addTo(map)
 }
 
@@ -17,13 +16,24 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 }
 
-/** Overview map with every spot as a coloured dot */
+/** letter-tile marker: S = street spot (black tile), P = skatepark (white tile); red when bust */
+export function pinIcon(kind, status, extra = '') {
+  const letter = kind === 'park' ? 'P' : 'S'
+  return L.divIcon({
+    className: '',
+    html: `<div class="pin pin-${kind} pin-${status} ${extra}">${letter}${status === 'bust' ? '<i>!</i>' : ''}</div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    tooltipAnchor: [0, -14],
+  })
+}
+
+/** Overview map with every spot as a letter tile */
 export default function SpotMap({ spots, onSelect, highlightId, className = '' }) {
   const el = useRef(null)
   const map = useRef(null)
   const layer = useRef(null)
   const markers = useRef(new Map())
-  const fitted = useRef(false)
 
   useEffect(() => {
     map.current = L.map(el.current, { zoomControl: true }).setView(VIENNA, 12)
@@ -42,41 +52,41 @@ export default function SpotMap({ spots, onSelect, highlightId, className = '' }
     markers.current.clear()
     spots.forEach((s) => {
       const status = bustStatus(s)
-      const m = L.circleMarker([s.lat, s.lng], {
-        radius: s.kind === 'park' ? 9 : 7,
-        color: '#111',
-        weight: 2,
-        fillColor: COLORS[status],
-        fillOpacity: 0.95,
+      const m = L.marker([s.lat, s.lng], {
+        icon: pinIcon(s.kind, status),
+        riseOnHover: true,
+        zIndexOffset: s.kind === 'park' ? 100 : 0,
       })
-      const rating = s.avg_rating ? `★ ${s.avg_rating}` : 'not rated'
-      m.bindTooltip(`<b>${escapeHtml(s.name)}</b><br>${rating}`, { direction: 'top', offset: [0, -6] })
+      const rating = s.avg_rating ? `${s.avg_rating}/10` : 'not rated'
+      const bust = status === 'bust' ? ' · <b class="tt-bust">BUST!</b>' : ''
+      m.bindTooltip(`<b>${escapeHtml(s.name)}</b><br>${s.kind === 'park' ? 'Skatepark' : 'Street spot'} · ${rating}${bust}`, {
+        direction: 'top',
+        className: 'ink-tooltip',
+      })
       m.on('click', () => onSelect?.(s))
       m.addTo(layer.current)
       markers.current.set(s.id, m)
     })
-    if (!fitted.current && spots.length > 1) {
-      // fit to the core Vienna cluster, ignoring far outliers
-      map.current.setView(VIENNA, 12)
-      fitted.current = true
-    }
   }, [spots, onSelect])
 
   useEffect(() => {
     if (!highlightId) return
-    const m = markers.current.get(highlightId)
-    if (m) {
-      m.setStyle({ color: '#fff', weight: 3 })
-      m.bringToFront()
-      return () => m.setStyle({ color: '#111', weight: 2 })
-    }
+    const el = markers.current.get(highlightId)?.getElement()?.firstChild
+    if (!el) return
+    el.classList.add('pin-hi')
+    return () => el.classList.remove('pin-hi')
   }, [highlightId, spots])
 
-  return <div ref={el} className={`map ${className}`} />
+  return (
+    <div className={`map-wrap ${className}`}>
+      <div ref={el} className="map" />
+      <div className="map-grain" />
+    </div>
+  )
 }
 
 /** Small map that marks one spot, or lets you pick a location when onPick is set */
-export function MiniMap({ lat, lng, onPick, zoom = 15, className = '' }) {
+export function MiniMap({ lat, lng, kind = 'spot', status = 'unknown', onPick, zoom = 15, className = '' }) {
   const el = useRef(null)
   const map = useRef(null)
   const marker = useRef(null)
@@ -85,9 +95,7 @@ export function MiniMap({ lat, lng, onPick, zoom = 15, className = '' }) {
     const start = lat != null && lng != null ? [lat, lng] : VIENNA
     map.current = L.map(el.current, { scrollWheelZoom: !!onPick }).setView(start, lat != null ? zoom : 12)
     tiles(map.current)
-    if (onPick) {
-      map.current.on('click', (e) => onPick(e.latlng.lat, e.latlng.lng))
-    }
+    if (onPick) map.current.on('click', (e) => onPick(e.latlng.lat, e.latlng.lng))
     const ro = new ResizeObserver(() => map.current?.invalidateSize())
     ro.observe(el.current)
     return () => {
@@ -99,17 +107,19 @@ export function MiniMap({ lat, lng, onPick, zoom = 15, className = '' }) {
 
   useEffect(() => {
     if (lat == null || lng == null) return
-    if (!marker.current) {
-      marker.current = L.circleMarker([lat, lng], {
-        radius: 10,
-        color: '#fff',
-        weight: 3,
-        fillColor: '#ff4d2e',
-        fillOpacity: 1,
-      }).addTo(map.current)
-    } else marker.current.setLatLng([lat, lng])
+    const icon = pinIcon(kind, status, 'pin-big')
+    if (!marker.current) marker.current = L.marker([lat, lng], { icon }).addTo(map.current)
+    else {
+      marker.current.setLatLng([lat, lng])
+      marker.current.setIcon(icon)
+    }
     if (!map.current.getBounds().contains([lat, lng])) map.current.setView([lat, lng], Math.max(map.current.getZoom(), 15))
-  }, [lat, lng])
+  }, [lat, lng, kind, status])
 
-  return <div ref={el} className={`map ${className}`} />
+  return (
+    <div className={`map-wrap ${className}`}>
+      <div ref={el} className="map" />
+      <div className="map-grain" />
+    </div>
+  )
 }

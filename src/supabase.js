@@ -11,6 +11,7 @@ export const PHOTO_BUCKET = 'spot-photos'
 
 /** bust status from community votes */
 export function bustStatus(spot) {
+  if (spot.kind === 'park') return 'none' // skateparks have no bust rating
   const yes = Number(spot.bust_yes || 0)
   const no = Number(spot.bust_no || 0)
   if (yes + no === 0) return 'unknown'
