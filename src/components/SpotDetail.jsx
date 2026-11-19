@@ -157,6 +157,17 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
   return (
     <main className="detail">
       <BackLink />
+      <div className="detail-head">
+        <KindTag kind={spot.kind} />
+        <Tiles as="h1" text={spot.name} className="spot-title" />
+        {bust !== 'none' && <div className={`bust-line ${bust}`}>
+          <BustBadge spot={spot} />
+          <span>
+            {Number(spot.bust_yes)} say bust · {Number(spot.bust_no)} say skateable
+          </span>
+        </div>}
+        {spot.description && <p className="desc">{spot.description}</p>}
+      </div>
       <div className="detail-grid">
         <div className="detail-media">
           <div className="hero-wrap">
@@ -193,18 +204,6 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
         </div>
 
         <div className="detail-info">
-          <div className="detail-head">
-            <KindTag kind={spot.kind} />
-            <Tiles as="h1" text={spot.name} className="spot-title" />
-            {bust !== 'none' && <div className={`bust-line ${bust}`}>
-              <BustBadge spot={spot} />
-              <span>
-                {Number(spot.bust_yes)} say bust · {Number(spot.bust_no)} say skateable
-              </span>
-            </div>}
-            {spot.description && <p className="desc">{spot.description}</p>}
-          </div>
-
           {spot.kind === 'park' && (
             <section className="card">
               <h2>Opening hours</h2>

@@ -169,7 +169,7 @@ h1.tiles { font-size: clamp(22px, 3.6vw, 34px); }
 /* detail */
 .detail { max-width: 1180px; margin: 0 auto; padding: 18px 20px 80px; }
 .detail.narrow { max-width: 640px; }
-.back { display: inline-block; margin-bottom: 16px; }
+.back { display: inline-block; margin-bottom: 14px; }
 .detail-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
 .detail-media { display: grid; gap: 12px; position: sticky; top: calc(var(--header) + 18px); }
 .hero-wrap { position: relative; }
@@ -179,7 +179,8 @@ h1.tiles { font-size: clamp(22px, 3.6vw, 34px); }
 .photo-btn.busy { opacity: .7; cursor: default; }
 .mini { height: 210px; border: 3px solid var(--ink); }
 .detail-info { display: grid; gap: 16px; }
-.detail-head { display: grid; gap: 12px; justify-items: start; }
+.detail-head { display: grid; gap: 12px; justify-items: start; margin-bottom: 22px; }
+.detail-head .desc { max-width: 70ch; }
 .desc { margin: 0; white-space: pre-line; font-size: 16px; }
 
 /* the BUST stamp on the photo */
