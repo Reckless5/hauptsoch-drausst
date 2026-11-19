@@ -35,7 +35,14 @@ export default function Overview({ spots, loading }) {
 
   // locate button: center now if we know where you are, otherwise once the first fix arrives
   const wantCenter = useRef(false)
+  const [showLocError, setShowLocError] = useState(false)
+  useEffect(() => {
+    if (!showLocError) return
+    const t = setTimeout(() => setShowLocError(false), 5000)
+    return () => clearTimeout(t)
+  }, [showLocError])
   const onLocate = useCallback(() => {
+    setShowLocError(true)
     if (me) setRecenter((n) => n + 1)
     else {
       wantCenter.current = true
@@ -149,7 +156,7 @@ export default function Overview({ spots, loading }) {
           onLocate={onLocate}
           locating={locating}
         />
-        {locError && <div className="loc-error">{locError}</div>}
+        {locError && showLocError && <div className="loc-error">{locError}</div>}
         <div className="legend">
           <span><b className="pin pin-spot pin-unknown">S</b> Street spot</span>
           <span><b className="pin pin-park pin-unknown">P</b> Skatepark</span>
