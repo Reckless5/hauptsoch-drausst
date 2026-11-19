@@ -61,7 +61,8 @@ export const CATEGORIES = [
   { id: 'handrail', label: 'Handrail', letter: 'H', color: '#db2777', ink: '#fff' },
   { id: 'mannypad', label: 'Manny pad', letter: 'M', color: '#facc15', ink: '#111' },
   { id: 'stairs', label: 'Stairset', letter: 'S', color: '#7c4a1e', ink: '#fff' },
-  { id: 'other', label: 'Other / gap', letter: '?', color: '#6b7280', ink: '#fff' },
+  { id: 'gap', label: 'Gap', letter: 'G', color: '#06b6d4', ink: '#111' },
+  { id: 'other', label: 'Other', letter: '?', color: '#6b7280', ink: '#fff' },
 ]
 export const CAT = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 export const catOf = (spot) => CAT[spot?.category] ?? CAT.other
