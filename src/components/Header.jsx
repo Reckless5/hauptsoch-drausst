@@ -11,7 +11,7 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
           navigate('/')
         }}
       >
-        BUST<span>!</span>
+        <img src="/logo.jpg" alt="Hauptsoch Drausst" />
         <small>Vienna skatespots</small>
       </a>
       <div className="header-actions">

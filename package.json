@@ -1,5 +1,5 @@
 {
-  "name": "bust",
+  "name": "hauptsoch-drausst",
   "version": "1.0.0",
   "description": "Vienna skatespots — community map with ratings, notes and bust flags",
   "scripts": {
@@ -9,12 +9,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Reckless5/bust.git"
+    "url": "git+https://github.com/Reckless5/hauptsoch-drausst.git"
   },
   "bugs": {
-    "url": "https://github.com/Reckless5/bust/issues"
+    "url": "https://github.com/Reckless5/hauptsoch-drausst/issues"
   },
-  "homepage": "https://github.com/Reckless5/bust#readme",
+  "homepage": "https://github.com/Reckless5/hauptsoch-drausst#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
     "leaflet": "^1.9.4",

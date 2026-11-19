@@ -1,4 +1,4 @@
-# BUST! – Vienna skatespots
+# Hauptsoch Drausst – Vienna skatespots
 
 A community overview of Vienna's skatespots, seeded with the 186 spots and parks from the
 [Vienna Spotmap](https://viennaskatespots.wordpress.com/).
