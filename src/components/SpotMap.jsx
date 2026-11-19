@@ -151,7 +151,19 @@ export function MiniMap({ lat, lng, kind = 'spot', status = 'unknown', onPick, z
 
   useEffect(() => {
     const start = lat != null && lng != null ? [lat, lng] : VIENNA
-    map.current = L.map(el.current, { scrollWheelZoom: !!onPick }).setView(start, lat != null ? zoom : 12)
+    // spot page: static map so it can't be scrolled/zoomed by accident; add-spot picker stays interactive
+    const locked = !onPick
+    map.current = L.map(el.current, {
+      scrollWheelZoom: !locked,
+      dragging: !locked,
+      touchZoom: !locked,
+      doubleClickZoom: !locked,
+      boxZoom: !locked,
+      keyboard: !locked,
+      zoomControl: !locked,
+      tap: !locked,
+    }).setView(start, lat != null ? zoom : 12)
+    if (locked) el.current.classList.add('map-locked')
     tiles(map.current)
     if (onPick) map.current.on('click', (e) => onPick(e.latlng.lat, e.latlng.lng))
     const ro = new ResizeObserver(() => map.current?.invalidateSize())

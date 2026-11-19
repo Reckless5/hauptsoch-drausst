@@ -157,6 +157,23 @@ export default function Overview({ spots, loading }) {
           locating={locating}
         />
         {locError && showLocError && <div className="loc-error">{locError}</div>}
+        <div className="map-filter" role="group" aria-label="Show">
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'spot', label: 'S', title: 'Street spots' },
+            { id: 'park', label: 'P', title: 'Skateparks' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              title={f.title}
+              className={`mf-${f.id} ${filter === f.id ? 'on' : ''}`}
+              onClick={() => setFilter(f.id)}
+            >
+              {f.label}
+              {f.title && <span>{f.title}</span>}
+            </button>
+          ))}
+        </div>
         <div className="legend">
           <span><b className="pin pin-spot pin-unknown">S</b> Street spot</span>
           <span><b className="pin pin-park pin-unknown">P</b> Skatepark</span>
