@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../supabase.js'
 
-export default function AuthModal({ onClose }) {
-  const [mode, setMode] = useState('login') // login | signup
+export default function AuthModal({ onClose, invite: initialInvite = '' }) {
+  const [mode, setMode] = useState(initialInvite ? 'signup' : 'login') // login | signup
+  const [invite, setInvite] = useState(initialInvite)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -24,13 +25,20 @@ export default function AuthModal({ onClose }) {
         setBusy(false)
         return setError('Pick a username.')
       }
+      const code = invite.trim().toUpperCase()
+      const { data: ok } = await supabase.rpc('check_invite', { invite_code: code })
+      if (!ok) {
+        setBusy(false)
+        return setError('That invite code is invalid, used up or expired.')
+      }
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username: username.trim() }, emailRedirectTo: window.location.origin },
+        options: { data: { username: username.trim(), invite_code: code }, emailRedirectTo: window.location.origin },
       })
       setBusy(false)
-      if (error) return setError(error.message)
+      if (error)
+        return setError(/database error/i.test(error.message) ? 'That invite code is invalid, used up or expired.' : error.message)
       if (data.session) onClose()
       else setInfo('Check your inbox and click the confirmation link, then log in.')
     }
@@ -43,11 +51,17 @@ export default function AuthModal({ onClose }) {
           ×
         </button>
         <h2>{mode === 'login' ? 'Log in' : 'Join the crew'}</h2>
-        <p className="muted">Log in to add spots, rate them, flag busts and leave notes.</p>
+        <p className="muted">{mode === 'login' ? 'Log in to add spots, rate them, flag busts and leave notes.' : 'Hauptsoch Drausst is invite-only for now. You need an invite code from a member.'}</p>
         {info ? (
           <div className="banner ok">{info}</div>
         ) : (
           <form onSubmit={submit} className="auth-form">
+            {mode === 'signup' && (
+              <label>
+                Invite code
+                <input required value={invite} onChange={(e) => setInvite(e.target.value)} autoCapitalize="characters" placeholder="from your invite link" />
+              </label>
+            )}
             {mode === 'signup' && (
               <label>
                 Username
@@ -78,9 +92,9 @@ export default function AuthModal({ onClose }) {
         <p className="switch">
           {mode === 'login' ? (
             <>
-              New here?{' '}
+              Got an invite?{' '}
               <button className="link" onClick={() => { setMode('signup'); setError(null); setInfo(null) }}>
-                Create an account
+                Sign up
               </button>
             </>
           ) : (

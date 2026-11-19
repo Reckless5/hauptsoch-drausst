@@ -5,6 +5,7 @@ import Overview from './components/Overview.jsx'
 import SpotDetail from './components/SpotDetail.jsx'
 import AddSpot from './components/AddSpot.jsx'
 import AuthModal from './components/AuthModal.jsx'
+import InviteModal from './components/InviteModal.jsx'
 
 function parseRoute() {
   const path = window.location.pathname
@@ -24,7 +25,14 @@ export default function App() {
   const [route, setRoute] = useState(parseRoute)
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [authOpen, setAuthOpen] = useState(false)
+  // invite links look like /?invite=CODE – open sign-up with the code filled in
+  const [inviteCode] = useState(() => {
+    const code = new URLSearchParams(window.location.search).get('invite') || ''
+    if (code) window.history.replaceState({}, '', window.location.pathname)
+    return code
+  })
+  const [authOpen, setAuthOpen] = useState(!!inviteCode)
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [spots, setSpots] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -48,7 +56,7 @@ export default function App() {
     if (!session?.user) return setProfile(null)
     supabase
       .from('profiles')
-      .select('id, username')
+      .select('id, username, is_admin')
       .eq('id', session.user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data))
@@ -79,6 +87,7 @@ export default function App() {
         onLogin={requireLogin}
         onLogout={() => supabase.auth.signOut()}
         onAdd={() => (user ? navigate('/add') : requireLogin())}
+        onInvite={() => setInviteOpen(true)}
       />
       {error && <div className="banner error">Couldn't load spots: {error}</div>}
       {route.name === 'home' && <Overview spots={spots} loading={loading} />}
@@ -94,7 +103,8 @@ export default function App() {
       {route.name === 'add' && (
         <AddSpot user={user} onRequireLogin={requireLogin} onCreated={loadSpots} />
       )}
-      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+      {authOpen && !user && <AuthModal invite={inviteCode} onClose={() => setAuthOpen(false)} />}
+      {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} />}
     </div>
   )
 }
