@@ -149,21 +149,17 @@ h1.tiles { font-size: clamp(22px, 3.6vw, 34px); }
   transition: transform .1s;
 }
 .pin-spot { background: var(--ink); color: var(--paper); }
-.pin-park { background: #fff; color: var(--ink); width: 28px; height: 28px; font-size: 14px; margin: -2px; border-width: 3px; }
-.pin-bust { background: var(--bust); color: #fff; border-color: #6b0c07; }
+.pin-park { width: 28px; height: 28px; font-size: 14px; margin: -2px; border-width: 3px; }
+.pin-bust { border-color: var(--bust); box-shadow: 0 0 0 2px var(--bust), 2px 2px 0 rgba(0,0,0,.55); }
+.pin-pending { border-style: dashed; opacity: .75; }
 .pin i { position: absolute; top: -9px; right: -8px; width: 14px; height: 14px; display: grid; place-items: center; background: #fff; color: var(--bust); border: 2px solid var(--bust); border-radius: 50%; font-size: 8px; font-style: normal; }
 .pin-hi, .leaflet-marker-icon:hover .pin { transform: scale(1.35) rotate(-4deg); }
 .pin-big { transform: scale(1.4); }
-.legend .pin { width: 20px; height: 20px; font-size: 10px; margin: 0; box-shadow: none; }
-.legend .pin-park { border-width: 2px; }
-.legend .pin i { top: -7px; right: -7px; width: 11px; height: 11px; font-size: 6px; }
 .ink-tooltip { background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); font-size: 13px; }
 .ink-tooltip b { font-weight: 800; }
 .ink-tooltip .tt-bust { color: var(--bust); }
 .leaflet-tooltip-top.ink-tooltip:before { border-top-color: var(--ink); }
 
-.legend { position: absolute; left: 12px; bottom: 14px; z-index: 500; display: flex; gap: 14px; background: #fff; border: 2px solid var(--ink); padding: 7px 12px; border-radius: var(--radius); font-size: 12px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
-.legend span { display: flex; align-items: center; gap: 7px; }
 .view-toggle { display: none; }
 
 /* detail */
@@ -267,7 +263,7 @@ h1.tiles { font-size: clamp(22px, 3.6vw, 34px); }
   }
   .view-toggle button { border: 0; background: none; padding: 9px 22px; font-family: var(--tile-font); font-size: 12px; text-transform: uppercase; }
   .view-toggle button.on { background: var(--ink); color: var(--paper); }
-  .legend { bottom: 82px; gap: 10px; font-size: 11px; }
+  .legend { bottom: 82px; }
   .detail { padding: 14px 14px 60px; }
   .detail-grid { grid-template-columns: 1fr; gap: 18px; }
   .detail-media { position: static; }
@@ -362,3 +358,30 @@ select { font: inherit; border: 2px solid var(--ink); border-radius: var(--radiu
 @media (max-width: 820px) {
   .header-actions a.btn { max-width: 90px; }
 }
+
+/* category legend on the map */
+.legend { position: absolute; left: 12px; bottom: 14px; z-index: 500; background: #fff; border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: 3px 3px 0 var(--ink); font-size: 12px; font-weight: 700; min-width: 150px; }
+.legend-head { display: flex; justify-content: space-between; width: 100%; gap: 10px; background: none; border: 0; padding: 7px 10px; font-family: var(--tile-font); font-size: 10px; text-transform: uppercase; }
+.legend ul { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 3px; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend li > button { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; padding: 2px; border-radius: 3px; text-align: left; font-weight: 700; }
+.legend li > button:hover { background: var(--paper-2); }
+.legend li > button.on { background: var(--ink); color: var(--paper); }
+.legend li > button.dim { opacity: .45; }
+.legend .pin { width: 20px; height: 20px; font-size: 10px; margin: 0; box-shadow: none; border-width: 2px; flex: none; }
+.legend .pin i { top: -7px; right: -7px; width: 11px; height: 11px; font-size: 6px; }
+.legend-bust { padding: 2px; }
+.legend .pin-bust { box-shadow: 0 0 0 2px var(--bust); }
+.cat-dot { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; font-family: var(--tile-font); font-size: 10px; border: 2px solid var(--ink); border-radius: 3px; }
+.cat-tag { font-family: var(--tile-font); font-size: 11px; text-transform: uppercase; padding: 4px 8px; border: 2px solid var(--ink); border-radius: 3px; }
+@media (max-width: 820px) {
+  .legend { bottom: 82px; min-width: 0; }
+}
+
+.pending-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-style: dashed; margin: 0 0 16px; }
+.cat-select { font-family: var(--tile-font); font-size: 11px; text-transform: uppercase; border: 2px solid var(--ink); border-radius: 3px; padding: 4px 6px; flex: none; }
+.cat-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.cat-picker button { display: flex; align-items: center; gap: 8px; border: 2px solid var(--ink); border-radius: var(--radius); background: #fff; padding: 7px 8px; font-weight: 700; text-align: left; }
+.cat-picker .pin { width: 20px; height: 20px; font-size: 10px; box-shadow: none; flex: none; }
+.cat-picker button.on .pin { border-color: currentColor; }
+.header-actions a.btn .badge { margin-left: 6px; }

@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { supabase, uploadPhoto } from '../supabase.js'
+import { supabase, uploadPhoto, CATEGORIES } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
 import { Tiles } from './bits.jsx'
 
-export default function AddSpot({ user, onRequireLogin, onCreated }) {
+export default function AddSpot({ user, isAdmin, onRequireLogin, onCreated }) {
   const [name, setName] = useState('')
-  const [kind, setKind] = useState('spot')
+  const [category, setCategory] = useState(null)
+  const kind = category === 'park' ? 'park' : 'spot'
   const [description, setDescription] = useState('')
   const [pos, setPos] = useState(null)
   const [file, setFile] = useState(null)
@@ -51,6 +52,7 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
     e.preventDefault()
     setError(null)
     if (!name.trim()) return setError('Give the spot a name.')
+    if (!category) return setError('Pick what kind of spot it is.')
     if (!pos) return setError('Tap the map (or use your location) to place the spot.')
     setBusy(true)
     try {
@@ -61,6 +63,7 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
         .insert({
           name: name.trim(),
           kind,
+          category,
           description: description.trim() || null,
           lat: pos.lat,
           lng: pos.lng,
@@ -87,13 +90,22 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
           <input value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="e.g. Museumsquartier Ledges" />
         </label>
 
-        <div className="seg">
-          <button type="button" className={kind === 'spot' ? 'on' : ''} onClick={() => setKind('spot')}>
-            Street spot
-          </button>
-          <button type="button" className={kind === 'park' ? 'on' : ''} onClick={() => setKind('park')}>
-            Skatepark
-          </button>
+        <div className="field">
+          What is it?
+          <div className="cat-picker">
+            {CATEGORIES.map((c) => (
+              <button
+                type="button"
+                key={c.id}
+                className={category === c.id ? 'on' : ''}
+                onClick={() => setCategory(c.id)}
+                style={category === c.id ? { background: c.color, color: c.ink } : undefined}
+              >
+                <b className="pin" style={{ background: c.color, color: c.ink }}>{c.letter}</b>
+                {c.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <label>
@@ -114,7 +126,7 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
               {locating ? 'Locating…' : 'Use my location'}
             </button>
           </div>
-          <MiniMap lat={pos?.lat} lng={pos?.lng} kind={kind} onPick={(lat, lng) => setPos({ lat, lng })} className="pick" />
+          <MiniMap lat={pos?.lat} lng={pos?.lng} spot={{ kind, category: category ?? 'other' }} onPick={(lat, lng) => setPos({ lat, lng })} className="pick" />
           <span className="hint">{pos ? `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)} – tap to move` : 'Tap the map to drop the pin.'}</span>
         </div>
 
@@ -126,8 +138,9 @@ export default function AddSpot({ user, onRequireLogin, onCreated }) {
 
         {error && <div className="banner error">{error}</div>}
         <button className="btn btn-accent big" disabled={busy}>
-          {busy ? 'Saving…' : 'Add spot'}
+          {busy ? 'Saving…' : isAdmin ? 'Add spot' : 'Send spot for review'}
         </button>
+        {!isAdmin && <p className="hint">An admin checks new spots before they show up for everyone. You can see yours right away.</p>}
       </form>
     </main>
   )

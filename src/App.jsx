@@ -79,7 +79,7 @@ export default function App() {
 
   useEffect(() => {
     loadSpots()
-  }, [loadSpots])
+  }, [loadSpots, session?.user?.id])
 
   const user = session?.user ?? null
   const requireLogin = () => setAuthOpen(true)
@@ -92,6 +92,7 @@ export default function App() {
         onLogin={requireLogin}
         onLogout={() => supabase.auth.signOut()}
         onAdd={() => (user ? navigate('/add') : requireLogin())}
+        pendingCount={profile?.is_admin ? spots.filter((s) => s.status === 'pending').length : 0}
       />
       {error && <div className="banner error">Couldn't load spots: {error}</div>}
       {route.name === 'home' && <Overview spots={spots} loading={loading} />}
@@ -106,12 +107,12 @@ export default function App() {
         />
       )}
       {route.name === 'add' && (
-        <AddSpot user={user} onRequireLogin={requireLogin} onCreated={loadSpots} />
+        <AddSpot user={user} isAdmin={!!profile?.is_admin} onRequireLogin={requireLogin} onCreated={loadSpots} />
       )}
       {authOpen && !user && <AuthModal invite={inviteCode} onClose={() => setAuthOpen(false)} />}
       {route.name === 'crew' && <Crew user={user} spots={spots} onRequireLogin={requireLogin} />}
       {route.name === 'account' && (
-        <Account user={user} profile={profile} onProfileChange={loadProfile} onRequireLogin={requireLogin} />
+        <Account user={user} profile={profile} spots={spots} onSpotsChange={loadSpots} onProfileChange={loadProfile} onRequireLogin={requireLogin} />
       )}
     </div>
   )

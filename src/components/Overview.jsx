@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { navigate } from '../App.jsx'
-import { bustStatus } from '../supabase.js'
+import { bustStatus, CATEGORIES, catOf } from '../supabase.js'
 import SpotMap from './SpotMap.jsx'
 import { BustBadge, RatingPill, Thumb } from './bits.jsx'
 import useLocation, { distance, formatDistance } from '../useLocation.js'
@@ -21,7 +21,7 @@ const SORTS = [
 ]
 
 // survives navigating to a spot and back
-const saved = { q: '', filter: 'all', sort: 'near', view: 'map' }
+const saved = { q: '', filter: 'all', sort: 'near', view: 'map', cat: null, legendOpen: typeof window !== 'undefined' && window.innerWidth > 820 }
 
 export default function Overview({ spots, loading }) {
   const [q, setQ] = useState(saved.q)
@@ -29,9 +29,11 @@ export default function Overview({ spots, loading }) {
   const [sort, setSort] = useState(saved.sort)
   const [view, setView] = useState(saved.view) // mobile only
   const [hover, setHover] = useState(null)
+  const [cat, setCat] = useState(saved.cat) // category picked in the legend
+  const [legendOpen, setLegendOpen] = useState(saved.legendOpen)
   const [recenter, setRecenter] = useState(0)
   const { me, locating, error: locError, request } = useLocation()
-  Object.assign(saved, { q, filter, sort, view })
+  Object.assign(saved, { q, filter, sort, view, cat, legendOpen })
 
   // locate button: center now if we know where you are, otherwise once the first fix arrives
   const wantCenter = useRef(false)
@@ -62,6 +64,7 @@ export default function Overview({ spots, loading }) {
     const needle = q.trim().toLowerCase()
     let list = spots.filter((s) => {
       if (needle && !`${s.name} ${s.description ?? ''}`.toLowerCase().includes(needle)) return false
+      if (cat && s.category !== cat) return false
       if (filter === 'spot' || filter === 'park') return s.kind === filter
       if (filter === 'bust' || filter === 'safe') return bustStatus(s) === filter
       return true
@@ -71,7 +74,7 @@ export default function Overview({ spots, loading }) {
       list = [...list].sort((a, b) => (b.avg_rating ?? -1) - (a.avg_rating ?? -1) || b.rating_count - a.rating_count)
     else if (sortBy === 'new') list = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at))
     return list
-  }, [spots, q, filter, sortBy, me])
+  }, [spots, q, filter, sortBy, me, cat])
 
   const open = useCallback((s) => navigate(`/spot/${s.id}`), [])
 
@@ -129,7 +132,10 @@ export default function Overview({ spots, loading }) {
                 <div className="spot-row-body">
                   <div className="spot-row-title">
                     <strong>{s.name}</strong>
-                    <span className={`kind-dot ${s.kind}`}>{s.kind === 'park' ? 'P' : 'S'}</span>
+                    <span className="cat-dot" style={{ background: catOf(s).color, color: catOf(s).ink }} title={catOf(s).label}>
+                      {catOf(s).letter}
+                    </span>
+                    {s.status === 'pending' && <span className="tag">in review</span>}
                     {me && <span className="dist">{formatDistance(s._d ?? distance(me, s))}</span>}
                   </div>
                   {s.description && <p className="spot-row-desc">{s.description}</p>}
@@ -174,10 +180,37 @@ export default function Overview({ spots, loading }) {
             </button>
           ))}
         </div>
-        <div className="legend">
-          <span><b className="pin pin-spot pin-unknown">S</b> Street spot</span>
-          <span><b className="pin pin-park pin-unknown">P</b> Skatepark</span>
-          <span><b className="pin pin-spot pin-bust">S<i>!</i></b> Bust</span>
+        <div className={`legend ${legendOpen ? 'open' : ''}`}>
+          <button className="legend-head" onClick={() => setLegendOpen(!legendOpen)} aria-expanded={legendOpen}>
+            {cat ? `Only: ${catOf({ category: cat }).label}` : 'Legend'} <span>{legendOpen ? '–' : '+'}</span>
+          </button>
+          {legendOpen && (
+            <ul>
+              {CATEGORIES.map((c) => (
+                <li key={c.id}>
+                  <button
+                    className={cat === c.id ? 'on' : cat ? 'dim' : ''}
+                    onClick={() => setCat(cat === c.id ? null : c.id)}
+                    title={cat === c.id ? 'Show all' : `Only show ${c.label}`}
+                  >
+                    <b className="pin" style={{ background: c.color, color: c.ink }}>{c.letter}</b>
+                    {c.label}
+                  </button>
+                </li>
+              ))}
+              <li className="legend-bust">
+                <b className="pin pin-bust" style={{ background: '#fff', color: '#111' }}>L<i>!</i></b>
+                Bust
+              </li>
+              {cat && (
+                <li>
+                  <button className="link" onClick={() => setCat(null)}>
+                    show all
+                  </button>
+                </li>
+              )}
+            </ul>
+          )}
         </div>
       </section>
 

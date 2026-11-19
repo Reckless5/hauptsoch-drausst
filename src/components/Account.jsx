@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../supabase.js'
+import { supabase, catOf } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { Tiles } from './bits.jsx'
 
@@ -59,7 +59,79 @@ function AdminManager({ user, setError }) {
   )
 }
 
-export default function Account({ user, profile, onProfileChange, onRequireLogin }) {
+function ReviewQueue({ spots, onChange, setError }) {
+  const pending = spots.filter((s) => s.status === 'pending').sort((a, b) => a.created_at.localeCompare(b.created_at))
+  const [names, setNames] = useState({})
+  useEffect(() => {
+    const ids = [...new Set(pending.map((s) => s.created_by).filter(Boolean))]
+    if (!ids.length) return
+    supabase
+      .from('profiles')
+      .select('id, username')
+      .in('id', ids)
+      .then(({ data }) => setNames(Object.fromEntries((data ?? []).map((p) => [p.id, p.username]))))
+  }, [pending.map((s) => s.id).join()]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function approve(s) {
+    const { error } = await supabase.from('spots').update({ status: 'approved' }).eq('id', s.id)
+    if (error) setError(error.message)
+    onChange()
+  }
+  async function reject(s) {
+    if (!window.confirm(`Reject and delete "${s.name}"?`)) return
+    const { error } = await supabase.from('spots').delete().eq('id', s.id)
+    if (error) setError(error.message)
+    onChange()
+  }
+
+  return (
+    <section className="card">
+      <div className="row-between">
+        <h2>Spots to review</h2>
+        <span className="muted small">{pending.length} waiting</span>
+      </div>
+      {pending.length === 0 ? (
+        <p className="muted">Nothing to review. New spots from members show up here.</p>
+      ) : (
+        <ul className="invite-table">
+          {pending.map((s) => (
+            <li key={s.id}>
+              <div className="row-between">
+                <a
+                  href={`/spot/${s.id}`}
+                  className="crew-spot"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    navigate(`/spot/${s.id}`)
+                  }}
+                >
+                  <span className="cat-dot" style={{ background: catOf(s).color, color: catOf(s).ink }}>{catOf(s).letter}</span>
+                  <b>{s.name}</b>
+                </a>
+                <span className="muted small">{catOf(s).label}</span>
+              </div>
+              <div className="muted small">
+                by {names[s.created_by] ?? '…'} · {fmtDate(s.created_at)}
+                {s.cover_url ? ' · has photo' : ' · no photo'}
+              </div>
+              {s.description && <div className="small">{s.description}</div>}
+              <div className="invite-row-actions">
+                <button className="btn btn-accent" onClick={() => approve(s)}>
+                  Approve
+                </button>
+                <button className="link danger" onClick={() => reject(s)}>
+                  Reject
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+export default function Account({ user, profile, spots = [], onSpotsChange, onProfileChange, onRequireLogin }) {
   const [username, setUsername] = useState(profile?.username ?? '')
   const [saved, setSaved] = useState(false)
   const [invites, setInvites] = useState([])
@@ -177,6 +249,8 @@ export default function Account({ user, profile, onProfileChange, onRequireLogin
           Log out
         </button>
       </section>
+
+      {profile?.is_admin && <ReviewQueue spots={spots} onChange={onSpotsChange} setError={setError} />}
 
       {profile?.is_superadmin && <AdminManager user={user} setError={setError} />}
 

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase, bustStatus, uploadPhoto } from '../supabase.js'
+import { supabase, bustStatus, uploadPhoto, CATEGORIES, catOf } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
-import { BustBadge, BustStamp, Hours, KindTag, Tiles, timeAgo } from './bits.jsx'
+import { BustBadge, BustStamp, Hours, Tiles, timeAgo } from './bits.jsx'
 
 export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChanged }) {
   const [spot, setSpot] = useState(null)
@@ -150,6 +150,21 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
   }
   const othersNext = saves.filter((x) => x.list === 'next' && x.user_id !== user?.id).map((x) => x.profiles?.username ?? '?')
 
+  async function setCategory(category) {
+    const { error } = await supabase
+      .from('spots')
+      .update({ category, kind: category === 'park' ? 'park' : 'spot' })
+      .eq('id', id)
+    if (error) return fail(error)
+    refresh()
+  }
+
+  async function approve() {
+    const { error } = await supabase.from('spots').update({ status: 'approved' }).eq('id', id)
+    if (error) return fail(error)
+    refresh()
+  }
+
   async function deleteSpot() {
     if (!window.confirm(`Delete "${spot.name}" for everyone? Its ratings, notes, photos and bust votes are deleted too. This can't be undone.`)) return
     const { error } = await supabase.from('spots').delete().eq('id', id)
@@ -174,8 +189,49 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
   return (
     <main className="detail">
       <BackLink />
+      {spot.status === 'pending' && (
+        <div className="banner pending-banner">
+          {isAdmin ? (
+            <>
+              <span>
+                <b>Waiting for review.</b> Only admins and the person who added it can see this spot.
+              </span>
+              <span className="row-actions">
+                <button className="btn btn-accent" onClick={approve}>
+                  Approve
+                </button>
+                <button className="link danger" onClick={deleteSpot}>
+                  reject
+                </button>
+              </span>
+            </>
+          ) : (
+            <span>
+              <b>Thanks! An admin checks this spot before it shows up for everyone.</b> Until then only you can see it.
+            </span>
+          )}
+        </div>
+      )}
       <div className="detail-head">
-        <KindTag kind={spot.kind} />
+        {isAdmin ? (
+          <select
+            className="cat-select"
+            value={spot.category}
+            onChange={(e) => setCategory(e.target.value)}
+            style={{ background: catOf(spot).color, color: catOf(spot).ink }}
+            aria-label="Category"
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.letter} · {c.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="cat-tag" style={{ background: catOf(spot).color, color: catOf(spot).ink }}>
+            {catOf(spot).letter} · {catOf(spot).label}
+          </span>
+        )}
         <Tiles as="h1" text={spot.name} className="spot-title" />
         {bust !== 'none' && <div className={`bust-line ${bust}`}>
           <BustBadge spot={spot} />
@@ -214,7 +270,7 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
               />
             </label>
           </div>
-          <MiniMap lat={spot.lat} lng={spot.lng} kind={spot.kind} status={bust} className="mini" />
+          <MiniMap lat={spot.lat} lng={spot.lng} spot={spot} status={bust} className="mini" />
           <a className="link" href={gmaps} target="_blank" rel="noreferrer">
             Directions in Google Maps ↗
           </a>

@@ -51,3 +51,17 @@ export async function uploadPhoto(file, userId) {
   if (error) throw error
   return supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl
 }
+
+/** spot categories: colour + letter on the map (letter keeps it readable without colour) */
+export const CATEGORIES = [
+  { id: 'park', label: 'Skatepark', letter: 'P', color: '#2563eb', ink: '#fff' },
+  { id: 'transition', label: 'Transition', letter: 'T', color: '#9333ea', ink: '#fff' },
+  { id: 'ledge', label: 'Ledge', letter: 'L', color: '#f97316', ink: '#111' },
+  { id: 'rail', label: 'Rail', letter: 'R', color: '#16a34a', ink: '#fff' },
+  { id: 'handrail', label: 'Handrail', letter: 'H', color: '#db2777', ink: '#fff' },
+  { id: 'mannypad', label: 'Manny pad', letter: 'M', color: '#facc15', ink: '#111' },
+  { id: 'stairs', label: 'Stairset', letter: 'S', color: '#7c4a1e', ink: '#fff' },
+  { id: 'other', label: 'Other / gap', letter: '?', color: '#6b7280', ink: '#fff' },
+]
+export const CAT = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
+export const catOf = (spot) => CAT[spot?.category] ?? CAT.other

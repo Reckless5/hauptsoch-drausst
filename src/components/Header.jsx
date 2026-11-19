@@ -1,6 +1,6 @@
 import { navigate } from '../App.jsx'
 
-export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
+export default function Header({ user, profile, onLogin, onLogout, onAdd, pendingCount = 0 }) {
   return (
     <header className="header">
       <a
@@ -40,6 +40,7 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
             title={user.email}
           >
             {profile?.username ?? 'Account'}
+            {pendingCount > 0 && <i className="badge" title={`${pendingCount} spots waiting for review`}>{pendingCount}</i>}
           </a>
           </>
         ) : (
