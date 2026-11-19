@@ -28,17 +28,49 @@ export function pinIcon(kind, status, extra = '') {
   })
 }
 
+const LocateControl = L.Control.extend({
+  options: { position: 'topleft' },
+  onAdd() {
+    const btn = L.DomUtil.create('button', 'locate-btn')
+    btn.type = 'button'
+    btn.title = 'Center on my location'
+    btn.setAttribute('aria-label', 'Center on my location')
+    btn.innerHTML = '<span></span>'
+    L.DomEvent.disableClickPropagation(btn)
+    L.DomEvent.on(btn, 'click', (e) => {
+      L.DomEvent.preventDefault(e)
+      this.options.onClick?.()
+    })
+    this._btn = btn
+    return btn
+  },
+  setState(state) {
+    if (this._btn) this._btn.dataset.state = state
+  },
+})
+
 /** Overview map with every spot as a letter tile */
-export default function SpotMap({ spots, onSelect, highlightId, className = '' }) {
+export default function SpotMap({ spots, onSelect, highlightId, me, recenter = 0, onLocate, locating, className = '' }) {
   const el = useRef(null)
   const map = useRef(null)
   const layer = useRef(null)
   const markers = useRef(new Map())
+  const meLayer = useRef(null)
+  const locate = useRef(null)
+  const onLocateRef = useRef(onLocate)
+  onLocateRef.current = onLocate
+  const userMoved = useRef(false)
+  const centeredOnce = useRef(false)
 
   useEffect(() => {
-    map.current = L.map(el.current, { zoomControl: true }).setView(VIENNA, 12)
+    const start = me ? [me.lat, me.lng] : VIENNA
+    map.current = L.map(el.current, { zoomControl: true }).setView(start, me ? 15 : 12)
+    centeredOnce.current = !!me
     tiles(map.current)
     layer.current = L.layerGroup().addTo(map.current)
+    meLayer.current = L.layerGroup().addTo(map.current)
+    locate.current = new LocateControl({ onClick: () => onLocateRef.current?.() }).addTo(map.current)
+    map.current.on('dragstart', () => (userMoved.current = true))
     const ro = new ResizeObserver(() => map.current?.invalidateSize())
     ro.observe(el.current)
     return () => {
@@ -68,6 +100,33 @@ export default function SpotMap({ spots, onSelect, highlightId, className = '' }
       markers.current.set(s.id, m)
     })
   }, [spots, onSelect])
+
+  // you-are-here marker; center on the first fix unless the user already moved the map
+  useEffect(() => {
+    meLayer.current.clearLayers()
+    if (!me) return
+    if (me.accuracy && me.accuracy < 2000)
+      L.circle([me.lat, me.lng], { radius: me.accuracy, className: 'me-accuracy', interactive: false }).addTo(meLayer.current)
+    L.marker([me.lat, me.lng], {
+      icon: L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+      interactive: false,
+      zIndexOffset: 1000,
+    }).addTo(meLayer.current)
+    if (!centeredOnce.current && !userMoved.current) {
+      map.current.setView([me.lat, me.lng], 15)
+      centeredOnce.current = true
+    }
+  }, [me])
+
+  // locate button pressed -> fly to current position
+  useEffect(() => {
+    if (!recenter || !me) return
+    map.current.flyTo([me.lat, me.lng], Math.max(map.current.getZoom(), 15), { duration: 0.6 })
+  }, [recenter]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    locate.current?.setState(locating ? 'busy' : me ? 'on' : 'off')
+  }, [locating, me])
 
   useEffect(() => {
     if (!highlightId) return

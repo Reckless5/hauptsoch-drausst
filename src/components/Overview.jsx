@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { navigate } from '../App.jsx'
 import { bustStatus } from '../supabase.js'
 import SpotMap from './SpotMap.jsx'
 import { BustBadge, RatingPill, Thumb } from './bits.jsx'
+import useLocation, { distance, formatDistance } from '../useLocation.js'
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -13,13 +14,14 @@ const FILTERS = [
 ]
 
 const SORTS = [
+  { id: 'near', label: 'Nearby' },
   { id: 'name', label: 'A–Z' },
   { id: 'rating', label: 'Top rated' },
   { id: 'new', label: 'Newest' },
 ]
 
 // survives navigating to a spot and back
-const saved = { q: '', filter: 'all', sort: 'name', view: 'map' }
+const saved = { q: '', filter: 'all', sort: 'near', view: 'map' }
 
 export default function Overview({ spots, loading }) {
   const [q, setQ] = useState(saved.q)
@@ -27,7 +29,27 @@ export default function Overview({ spots, loading }) {
   const [sort, setSort] = useState(saved.sort)
   const [view, setView] = useState(saved.view) // mobile only
   const [hover, setHover] = useState(null)
+  const [recenter, setRecenter] = useState(0)
+  const { me, locating, error: locError, request } = useLocation()
   Object.assign(saved, { q, filter, sort, view })
+
+  // locate button: center now if we know where you are, otherwise once the first fix arrives
+  const wantCenter = useRef(false)
+  const onLocate = useCallback(() => {
+    if (me) setRecenter((n) => n + 1)
+    else {
+      wantCenter.current = true
+      request()
+    }
+  }, [me, request])
+  useEffect(() => {
+    if (me && wantCenter.current) {
+      wantCenter.current = false
+      setRecenter((n) => n + 1)
+    }
+  }, [me])
+
+  const sortBy = sort === 'near' && !me ? 'name' : sort
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -37,11 +59,12 @@ export default function Overview({ spots, loading }) {
       if (filter === 'bust' || filter === 'safe') return bustStatus(s) === filter
       return true
     })
-    if (sort === 'rating')
+    if (sortBy === 'near') list = list.map((x) => ({ ...x, _d: distance(me, x) })).sort((a, b) => a._d - b._d)
+    else if (sortBy === 'rating')
       list = [...list].sort((a, b) => (b.avg_rating ?? -1) - (a.avg_rating ?? -1) || b.rating_count - a.rating_count)
-    else if (sort === 'new') list = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    else if (sortBy === 'new') list = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at))
     return list
-  }, [spots, q, filter, sort])
+  }, [spots, q, filter, sortBy, me])
 
   const open = useCallback((s) => navigate(`/spot/${s.id}`), [])
 
@@ -70,9 +93,10 @@ export default function Overview({ spots, loading }) {
           <div className="row-between">
             <span className="muted">
               {loading ? 'Loading spots…' : `${shown.length} of ${spots.length} spots`}
+              {sortBy === 'near' && ' · closest first'}
             </span>
             <div className="sort">
-              {SORTS.map((s) => (
+              {SORTS.filter((s) => s.id !== 'near' || me).map((s) => (
                 <button key={s.id} className={`link ${sort === s.id ? 'on' : ''}`} onClick={() => setSort(s.id)}>
                   {s.label}
                 </button>
@@ -99,6 +123,7 @@ export default function Overview({ spots, loading }) {
                   <div className="spot-row-title">
                     <strong>{s.name}</strong>
                     <span className={`kind-dot ${s.kind}`}>{s.kind === 'park' ? 'P' : 'S'}</span>
+                    {me && <span className="dist">{formatDistance(s._d ?? distance(me, s))}</span>}
                   </div>
                   {s.description && <p className="spot-row-desc">{s.description}</p>}
                   <div className="spot-row-meta">
@@ -115,7 +140,16 @@ export default function Overview({ spots, loading }) {
       </section>
 
       <section className="map-panel">
-        <SpotMap spots={shown} onSelect={open} highlightId={hover} />
+        <SpotMap
+          spots={shown}
+          onSelect={open}
+          highlightId={hover}
+          me={me}
+          recenter={recenter}
+          onLocate={onLocate}
+          locating={locating}
+        />
+        {locError && <div className="loc-error">{locError}</div>}
         <div className="legend">
           <span><b className="pin pin-spot pin-unknown">S</b> Street spot</span>
           <span><b className="pin pin-park pin-unknown">P</b> Skatepark</span>

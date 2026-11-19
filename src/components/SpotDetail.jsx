@@ -317,6 +317,8 @@ export default function SpotDetail({ id, user, onRequireLogin, onChanged }) {
                   Vienna Spotmap
                 </a>
               </>
+            ) : spot.source === 'stadt-wien' ? (
+              <>Data: Stadt Wien – wien.gv.at (CC BY 4.0)</>
             ) : spot.source === 'openstreetmap' ? (
               <>Data © OpenStreetMap contributors</>
             ) : (
