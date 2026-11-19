@@ -1,0 +1,190 @@
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../supabase.js'
+import { navigate } from '../App.jsx'
+import { Tiles } from './bits.jsx'
+
+const linkFor = (code) => `${window.location.origin}/?invite=${code}`
+const fmtDate = (iso) => new Date(iso).toLocaleDateString('de-AT')
+
+function inviteStatus(i) {
+  if (i.use_count >= i.max_uses) return 'full'
+  if (new Date(i.expires_at) <= new Date()) return 'expired'
+  return 'active'
+}
+
+export default function Account({ user, profile, onProfileChange, onRequireLogin }) {
+  const [username, setUsername] = useState(profile?.username ?? '')
+  const [saved, setSaved] = useState(false)
+  const [invites, setInvites] = useState([])
+  const [joined, setJoined] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const [copied, setCopied] = useState(null)
+
+  useEffect(() => setUsername(profile?.username ?? ''), [profile?.username])
+
+  const load = useCallback(async () => {
+    if (!profile?.is_admin) return
+    const [{ data: inv }, { data: uses }] = await Promise.all([
+      supabase
+        .from('invites')
+        .select('code, created_at, expires_at, max_uses, use_count')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('invite_uses')
+        .select('code, used_at, profiles:profiles!user_id(username)')
+        .eq('invited_by', user.id)
+        .order('used_at', { ascending: false }),
+    ])
+    setInvites(inv ?? [])
+    setJoined(uses ?? [])
+  }, [user?.id, profile?.is_admin])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (!user)
+    return (
+      <main className="detail narrow">
+        <Tiles as="h1" text="ACCOUNT" />
+        <p>Log in to see your account.</p>
+        <button className="btn btn-accent" onClick={onRequireLogin}>
+          Log in
+        </button>
+      </main>
+    )
+
+  async function saveName(e) {
+    e.preventDefault()
+    const name = username.trim()
+    if (!name || name === profile?.username) return
+    setError(null)
+    const { error } = await supabase.from('profiles').update({ username: name }).eq('id', user.id)
+    if (error) return setError(error.message)
+    onProfileChange?.()
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function create(group) {
+    setBusy(true)
+    setError(null)
+    const { data, error } = await supabase.rpc('create_invite', group ? { max_uses: 50, valid_days: 30 } : {})
+    setBusy(false)
+    if (error) return setError(error.message)
+    await load()
+    copy(data)
+  }
+
+  async function remove(code) {
+    if (!window.confirm('Delete this invite link? Nobody new can sign up with it. People who already joined keep their accounts.')) return
+    const { error } = await supabase.from('invites').delete().eq('code', code)
+    if (error) return setError(error.message)
+    load()
+  }
+
+  async function copy(code) {
+    try {
+      await navigator.clipboard.writeText(linkFor(code))
+      setCopied(code)
+      setTimeout(() => setCopied(null), 2000)
+    } catch {
+      /* clipboard blocked – the link is shown to copy by hand */
+    }
+  }
+
+  const byCode = joined.reduce((m, j) => ((m[j.code] ??= []).push(j.profiles?.username ?? '?'), m), {})
+  const totalJoined = joined.length
+
+  return (
+    <main className="detail narrow account">
+      <a
+        href="/"
+        className="back link"
+        onClick={(e) => {
+          e.preventDefault()
+          navigate('/')
+        }}
+      >
+        ← All spots
+      </a>
+      <Tiles as="h1" text="ACCOUNT" />
+
+      <section className="card">
+        <h2>Profile</h2>
+        <form className="name-form" onSubmit={saveName}>
+          <label>
+            Username
+            <input value={username} maxLength={30} onChange={(e) => setUsername(e.target.value)} />
+          </label>
+          <button className="btn" disabled={!username.trim() || username.trim() === profile?.username}>
+            {saved ? 'Saved' : 'Save'}
+          </button>
+        </form>
+        <p className="muted small">
+          {user.email} · {profile?.is_admin ? 'Admin' : 'Member'}
+        </p>
+        <button className="link" onClick={() => supabase.auth.signOut().then(() => navigate('/'))}>
+          Log out
+        </button>
+      </section>
+
+      {profile?.is_admin && (
+        <section className="card">
+          <div className="row-between">
+            <h2>Invite links</h2>
+            <span className="muted small">{totalJoined} joined via your links</span>
+          </div>
+          <p className="muted small">Personal: 1 person, 14 days. Group: up to 50 people, 30 days.</p>
+          <div className="invite-actions">
+            <button className="btn btn-accent" onClick={() => create(false)} disabled={busy}>
+              + Personal link
+            </button>
+            <button className="btn" onClick={() => create(true)} disabled={busy}>
+              + Group link
+            </button>
+          </div>
+          {error && <div className="banner error">{error}</div>}
+
+          <ul className="invite-table">
+            {invites.map((i) => {
+              const status = inviteStatus(i)
+              const names = byCode[i.code] ?? []
+              return (
+                <li key={i.code} className={status}>
+                  <div className="row-between">
+                    <div className="invite-head">
+                      <b>{i.code}</b>
+                      <span className="tag">{i.max_uses > 1 ? 'Group' : 'Personal'}</span>
+                      <span className={`inv-status ${status}`}>{status}</span>
+                    </div>
+                    <b className="uses">
+                      {i.use_count}/{i.max_uses} used
+                    </b>
+                  </div>
+                  <div className="muted small">
+                    Created {fmtDate(i.created_at)} · {status === 'expired' ? 'expired' : 'valid until'} {fmtDate(i.expires_at)}
+                  </div>
+                  {names.length > 0 && <div className="small">Joined: {names.join(', ')}</div>}
+                  <div className="invite-row-actions">
+                    {status === 'active' && (
+                      <button className="link" onClick={() => copy(i.code)}>
+                        {copied === i.code ? 'Copied!' : 'Copy link'}
+                      </button>
+                    )}
+                    <button className="link danger" onClick={() => remove(i.code)}>
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+            {invites.length === 0 && <li className="muted">No invite links yet.</li>}
+          </ul>
+        </section>
+      )}
+    </main>
+  )
+}

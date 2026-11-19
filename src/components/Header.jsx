@@ -1,6 +1,6 @@
 import { navigate } from '../App.jsx'
 
-export default function Header({ user, profile, onLogin, onLogout, onAdd, onInvite }) {
+export default function Header({ user, profile, onLogin, onLogout, onAdd }) {
   return (
     <header className="header">
       <a
@@ -19,17 +19,17 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd, onInvi
           + Spot
         </button>
         {user ? (
-          <div className="user-chip">
-            {profile?.is_admin && (
-              <button className="btn" onClick={onInvite}>
-                Invite
-              </button>
-            )}
-            <span title={user.email}>{profile?.username ?? '…'}</span>
-            <button className="link" onClick={onLogout}>
-              Log out
-            </button>
-          </div>
+          <a
+            className="btn"
+            href="/account"
+            onClick={(e) => {
+              e.preventDefault()
+              navigate('/account')
+            }}
+            title={user.email}
+          >
+            {profile?.username ?? 'Account'}
+          </a>
         ) : (
           <button className="btn btn-ghost" onClick={onLogin}>
             Log in

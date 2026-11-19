@@ -5,13 +5,14 @@ import Overview from './components/Overview.jsx'
 import SpotDetail from './components/SpotDetail.jsx'
 import AddSpot from './components/AddSpot.jsx'
 import AuthModal from './components/AuthModal.jsx'
-import InviteModal from './components/InviteModal.jsx'
+import Account from './components/Account.jsx'
 
 function parseRoute() {
   const path = window.location.pathname
   const m = path.match(/^\/spot\/([0-9a-f-]{36})/i)
   if (m) return { name: 'spot', id: m[1] }
   if (path.startsWith('/add')) return { name: 'add' }
+  if (path.startsWith('/account')) return { name: 'account' }
   return { name: 'home' }
 }
 
@@ -32,7 +33,6 @@ export default function App() {
     return code
   })
   const [authOpen, setAuthOpen] = useState(!!inviteCode)
-  const [inviteOpen, setInviteOpen] = useState(false)
   const [spots, setSpots] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -52,7 +52,7 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
+  const loadProfile = useCallback(() => {
     if (!session?.user) return setProfile(null)
     supabase
       .from('profiles')
@@ -61,6 +61,9 @@ export default function App() {
       .maybeSingle()
       .then(({ data }) => setProfile(data))
   }, [session?.user?.id])
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
 
   const loadSpots = useCallback(async () => {
     const { data, error } = await supabase
@@ -87,7 +90,6 @@ export default function App() {
         onLogin={requireLogin}
         onLogout={() => supabase.auth.signOut()}
         onAdd={() => (user ? navigate('/add') : requireLogin())}
-        onInvite={() => setInviteOpen(true)}
       />
       {error && <div className="banner error">Couldn't load spots: {error}</div>}
       {route.name === 'home' && <Overview spots={spots} loading={loading} />}
@@ -104,7 +106,9 @@ export default function App() {
         <AddSpot user={user} onRequireLogin={requireLogin} onCreated={loadSpots} />
       )}
       {authOpen && !user && <AuthModal invite={inviteCode} onClose={() => setAuthOpen(false)} />}
-      {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} />}
+      {route.name === 'account' && (
+        <Account user={user} profile={profile} onProfileChange={loadProfile} onRequireLogin={requireLogin} />
+      )}
     </div>
   )
 }
