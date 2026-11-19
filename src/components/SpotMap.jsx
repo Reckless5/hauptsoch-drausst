@@ -80,7 +80,6 @@ export default function SpotMap({ spots, onSelect, highlightId, className = '' }
   return (
     <div className={`map-wrap ${className}`}>
       <div ref={el} className="map" />
-      <div className="map-grain" />
     </div>
   )
 }
@@ -119,7 +118,6 @@ export function MiniMap({ lat, lng, kind = 'spot', status = 'unknown', onPick, z
   return (
     <div className={`map-wrap ${className}`}>
       <div ref={el} className="map" />
-      <div className="map-grain" />
     </div>
   )
 }
