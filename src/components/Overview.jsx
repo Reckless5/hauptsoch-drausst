@@ -124,11 +124,11 @@ export default function Overview({ spots, loading }) {
       </section>
 
       <div className="view-toggle">
-        <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>
-          List
-        </button>
         <button className={view === 'map' ? 'on' : ''} onClick={() => setView('map')}>
           Map
+        </button>
+        <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>
+          List
         </button>
       </div>
     </main>
