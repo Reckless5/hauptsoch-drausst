@@ -38,7 +38,7 @@ export default function AuthModal({ onClose, invite: initialInvite = '' }) {
       })
       setBusy(false)
       if (error)
-        return setError(/database error/i.test(error.message) ? 'That invite code is invalid, used up or expired.' : error.message)
+        return setError(/invite_invalid|database error/i.test(error.message) ? 'That invite code is invalid, used up or expired.' : error.message)
       if (data.session) onClose()
       else setInfo('Check your inbox and click the confirmation link, then log in.')
     }
