@@ -118,7 +118,8 @@ h2 { font-size: 20px; text-transform: uppercase; }
 .legend i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #111; outline: 1px solid #444; }
 .view-toggle { display: none; }
 
-.leaflet-container { font: inherit; }
+.leaflet-container { font: inherit; background: #0d0d0d; }
+.dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4); }
 .leaflet-tooltip { background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
 .leaflet-tooltip-top:before { border-top-color: #111; }
 
