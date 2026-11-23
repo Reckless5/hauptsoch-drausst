@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase, catOf, deletePhotoFile } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { Tiles } from './bits.jsx'
@@ -216,14 +217,16 @@ function PhotoReview({ onChange, setError }) {
           ))}
         </ul>
       )}
-      {big && (
-        <div className="viewer" onClick={() => setBig(null)}>
-          <img src={big} alt="" />
-          <button className="viewer-close" aria-label="Close">
-            ×
-          </button>
-        </div>
-      )}
+      {big &&
+        createPortal(
+          <div className="viewer" onClick={() => setBig(null)}>
+            <img src={big} alt="" />
+            <button className="viewer-close" aria-label="Close">
+              ×
+            </button>
+          </div>,
+          document.body
+        )}
     </section>
   )
 }

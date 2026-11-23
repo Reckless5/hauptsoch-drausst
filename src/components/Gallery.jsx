@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase, uploadPhoto, deletePhotoFile } from '../supabase.js'
 import { BustStamp } from './bits.jsx'
 
@@ -181,7 +182,7 @@ export default function Gallery({ spot, user, isAdmin, onRequireLogin, onChanged
       )}
       {approvedCount < shown.length && <p className="muted small">Dashed photos are waiting for admin review and only visible to {isAdmin ? 'admins and the uploader' : 'you and the admins'}.</p>}
 
-      {viewer && current && (
+      {viewer && current && createPortal(
         <div className="viewer" onClick={() => setViewer(false)}>
           <img src={current.url} alt={spot.name} referrerPolicy="no-referrer" onClick={(e) => e.stopPropagation()} />
           {shown.length > 1 && (
@@ -197,7 +198,8 @@ export default function Gallery({ spot, user, isAdmin, onRequireLogin, onChanged
           <button className="viewer-close" aria-label="Close">
             ×
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
