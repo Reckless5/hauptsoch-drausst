@@ -36,6 +36,7 @@ export default function App() {
   })
   const [authOpen, setAuthOpen] = useState(!!inviteCode)
   const [spots, setSpots] = useState([])
+  const [pendingPhotos, setPendingPhotos] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -75,6 +76,9 @@ export default function App() {
     if (error) setError(error.message)
     else setSpots(data)
     setLoading(false)
+    // admins: how many photos wait for review (RLS hides pending photos from everyone else)
+    const { count } = await supabase.from('spot_photos').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+    setPendingPhotos(count ?? 0)
   }, [])
 
   useEffect(() => {
@@ -92,7 +96,7 @@ export default function App() {
         onLogin={requireLogin}
         onLogout={() => supabase.auth.signOut()}
         onAdd={() => (user ? navigate('/add') : requireLogin())}
-        pendingCount={profile?.is_admin ? spots.filter((s) => s.status === 'pending').length : 0}
+        pendingCount={profile?.is_admin ? spots.filter((s) => s.status === 'pending').length + pendingPhotos : 0}
       />
       {error && <div className="banner error">Couldn't load spots: {error}</div>}
       {route.name === 'home' && <Overview spots={spots} loading={loading} />}

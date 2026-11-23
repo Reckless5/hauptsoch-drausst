@@ -10,8 +10,7 @@ export default function AddSpot({ user, isAdmin, onRequireLogin, onCreated }) {
   const kind = category === 'park' ? 'park' : 'spot'
   const [description, setDescription] = useState('')
   const [pos, setPos] = useState(null)
-  const [file, setFile] = useState(null)
-  const [preview, setPreview] = useState(null)
+  const [files, setFiles] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [locating, setLocating] = useState(false)
@@ -27,9 +26,8 @@ export default function AddSpot({ user, isAdmin, onRequireLogin, onCreated }) {
       </main>
     )
 
-  function pickFile(f) {
-    setFile(f)
-    setPreview(f ? URL.createObjectURL(f) : null)
+  function pickFiles(list) {
+    setFiles((prev) => [...prev, ...[...list].map((f) => ({ f, url: URL.createObjectURL(f) }))].slice(0, 10))
   }
 
   function locate() {
@@ -56,8 +54,6 @@ export default function AddSpot({ user, isAdmin, onRequireLogin, onCreated }) {
     if (!pos) return setError('Tap the map (or use your location) to place the spot.')
     setBusy(true)
     try {
-      let photo_url = null
-      if (file) photo_url = await uploadPhoto(file, user.id)
       const { data, error: insErr } = await supabase
         .from('spots')
         .insert({
@@ -67,12 +63,17 @@ export default function AddSpot({ user, isAdmin, onRequireLogin, onCreated }) {
           description: description.trim() || null,
           lat: pos.lat,
           lng: pos.lng,
-          photo_url,
           created_by: user.id,
         })
         .select('id')
         .single()
       if (insErr) throw insErr
+      // photos go into the spot's gallery (approved together with the spot)
+      for (const { f } of files) {
+        const url = await uploadPhoto(f, user.id)
+        const { error: pErr } = await supabase.from('spot_photos').insert({ spot_id: data.id, user_id: user.id, url })
+        if (pErr) throw pErr
+      }
       await onCreated?.()
       navigate(`/spot/${data.id}`)
     } catch (err) {
@@ -131,10 +132,29 @@ export default function AddSpot({ user, isAdmin, onRequireLogin, onCreated }) {
         </div>
 
         <label className="file">
-          Photo
-          <input type="file" accept="image/*" onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
-          {preview && <img src={preview} alt="preview" className="preview" />}
+          Photos {files.length > 0 && <span className="muted">({files.length}/10)</span>}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              pickFiles(e.target.files ?? [])
+              e.target.value = ''
+            }}
+          />
         </label>
+        {files.length > 0 && (
+          <ul className="thumbs">
+            {files.map((x, i) => (
+              <li key={x.url}>
+                <button type="button" title="Remove" onClick={() => setFiles(files.filter((_, j) => j !== i))}>
+                  <img src={x.url} alt="" />
+                  <span className="thumb-x">×</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {error && <div className="banner error">{error}</div>}
         <button className="btn btn-accent big" disabled={busy}>

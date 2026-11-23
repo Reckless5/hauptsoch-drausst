@@ -40,7 +40,7 @@ export default function Header({ user, profile, onLogin, onLogout, onAdd, pendin
             title={user.email}
           >
             {profile?.username ?? 'Account'}
-            {pendingCount > 0 && <i className="badge" title={`${pendingCount} spots waiting for review`}>{pendingCount}</i>}
+            {pendingCount > 0 && <i className="badge" title={`${pendingCount} spots/photos waiting for review`}>{pendingCount}</i>}
           </a>
           </>
         ) : (

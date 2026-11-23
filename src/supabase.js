@@ -66,3 +66,11 @@ export const CATEGORIES = [
 ]
 export const CAT = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 export const catOf = (spot) => CAT[spot?.category] ?? CAT.other
+
+/** remove an uploaded file from storage (ignores photos hosted elsewhere) */
+export async function deletePhotoFile(url) {
+  const marker = `/storage/v1/object/public/${PHOTO_BUCKET}/`
+  const i = url?.indexOf(marker) ?? -1
+  if (i < 0) return
+  await supabase.storage.from(PHOTO_BUCKET).remove([decodeURIComponent(url.slice(i + marker.length))])
+}

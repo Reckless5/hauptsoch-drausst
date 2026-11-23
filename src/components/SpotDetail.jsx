@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase, bustStatus, uploadPhoto, CATEGORIES, catOf } from '../supabase.js'
+import { supabase, bustStatus, CATEGORIES, catOf } from '../supabase.js'
+import Gallery from './Gallery.jsx'
 import { navigate } from '../App.jsx'
 import { MiniMap } from './SpotMap.jsx'
-import { BustBadge, BustStamp, Hours, Tiles, timeAgo } from './bits.jsx'
+import { BustBadge, Hours, Tiles, timeAgo } from './bits.jsx'
 
 export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChanged }) {
   const [spot, setSpot] = useState(null)
@@ -13,7 +14,6 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
   const [noteText, setNoteText] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
-  const [imgFailed, setImgFailed] = useState(false)
   const [saves, setSaves] = useState([]) // saved_spots rows for this spot I'm allowed to see
 
   const load = useCallback(async () => {
@@ -119,22 +119,6 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
     const { error } = await supabase.from('notes').delete().eq('id', noteId)
     if (error) return fail(error)
     refresh()
-  }
-
-  async function addPhoto(file) {
-    if (!file || !guard()) return
-    setBusy(true)
-    try {
-      const url = await uploadPhoto(file, user.id)
-      const { error } = await supabase.from('spot_photos').insert({ spot_id: id, user_id: user.id, url })
-      if (error) throw error
-      setImgFailed(false)
-      await refresh()
-    } catch (err) {
-      fail(err)
-    } finally {
-      setBusy(false)
-    }
   }
 
   const inList = (list) => saves.some((x) => x.user_id === user?.id && x.list === list)
@@ -243,33 +227,17 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
       </div>
       <div className="detail-grid">
         <div className="detail-media">
-          <div className="hero-wrap">
-            {spot.cover_url && !imgFailed ? (
-              <img
-                className="hero"
-                src={spot.cover_url}
-                alt={spot.name}
-                referrerPolicy="no-referrer"
-                onError={() => setImgFailed(true)}
-              />
-            ) : (
-              <div className="hero hero-empty">no photo yet</div>
-            )}
-            <BustStamp spot={spot} />
-            <label className={`photo-btn ${busy ? 'busy' : ''}`} onClick={(e) => { if (!user) { e.preventDefault(); onRequireLogin() } }}>
-              {busy ? 'Uploading…' : spot.cover_url && !imgFailed ? '+ New photo' : '+ Add photo'}
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                disabled={busy}
-                onChange={(e) => {
-                  addPhoto(e.target.files?.[0])
-                  e.target.value = ''
-                }}
-              />
-            </label>
-          </div>
+          <Gallery
+            spot={spot}
+            user={user}
+            isAdmin={isAdmin}
+            onRequireLogin={onRequireLogin}
+            onChanged={() => {
+              load()
+              onChanged?.()
+            }}
+            fail={fail}
+          />
           <MiniMap lat={spot.lat} lng={spot.lng} spot={spot} status={bust} className="mini" />
           <a className="link" href={gmaps} target="_blank" rel="noreferrer">
             Directions in Google Maps ↗
@@ -414,7 +382,6 @@ export default function SpotDetail({ id, user, isAdmin, onRequireLogin, onChange
             ) : (
               <>Added {new Date(spot.created_at).toLocaleDateString('de-AT')} by the community</>
             )}
-            {spot.photo_credit && <> · Photo: {spot.photo_credit}</>}
             {user && (spot.created_by === user.id || isAdmin) && (
               <>
                 {' · '}

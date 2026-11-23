@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase, catOf } from '../supabase.js'
+import { supabase, catOf, deletePhotoFile } from '../supabase.js'
 import { navigate } from '../App.jsx'
 import { Tiles } from './bits.jsx'
 
@@ -131,6 +131,103 @@ function ReviewQueue({ spots, onChange, setError }) {
   )
 }
 
+function PhotoReview({ onChange, setError }) {
+  const [photos, setPhotos] = useState([])
+  const [big, setBig] = useState(null)
+  const load = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('spot_photos')
+      .select('id, url, created_at, spot_id, spots(name, status), profiles!user_id(username)')
+      .eq('status', 'pending')
+      .order('created_at')
+    if (error) setError(error.message)
+    setPhotos(data ?? [])
+  }, [setError])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function approve(p) {
+    const { error } = await supabase.from('spot_photos').update({ status: 'approved' }).eq('id', p.id)
+    if (error) setError(error.message)
+    await load()
+    onChange?.()
+  }
+  async function remove(p) {
+    if (!window.confirm('Delete this photo?')) return
+    const { error } = await supabase.from('spot_photos').delete().eq('id', p.id)
+    if (error) return setError(error.message)
+    await deletePhotoFile(p.url)
+    await load()
+    onChange?.()
+  }
+  async function approveAll() {
+    if (!window.confirm(`Approve all ${photos.length} photos?`)) return
+    const { error } = await supabase.from('spot_photos').update({ status: 'approved' }).in('id', photos.map((p) => p.id))
+    if (error) setError(error.message)
+    await load()
+    onChange?.()
+  }
+
+  return (
+    <section className="card">
+      <div className="row-between">
+        <h2>Photos to review</h2>
+        <span className="row-actions">
+          <span className="muted small">{photos.length} waiting</span>
+          {photos.length > 1 && (
+            <button className="link" onClick={approveAll}>
+              approve all
+            </button>
+          )}
+        </span>
+      </div>
+      {photos.length === 0 ? (
+        <p className="muted">No photos waiting.</p>
+      ) : (
+        <ul className="photo-review">
+          {photos.map((p) => (
+            <li key={p.id}>
+              <img src={p.url} alt="" loading="lazy" onClick={() => setBig(p.url)} />
+              <div className="pr-body">
+                <a
+                  href={`/spot/${p.spot_id}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    navigate(`/spot/${p.spot_id}`)
+                  }}
+                >
+                  <b>{p.spots?.name ?? 'spot'}</b>
+                  {p.spots?.status === 'pending' && <span className="muted"> (new spot)</span>}
+                </a>
+                <span className="muted">
+                  by {p.profiles?.username ?? '?'} · {fmtDate(p.created_at)}
+                </span>
+                <span className="row-actions">
+                  <button className="btn btn-accent" onClick={() => approve(p)}>
+                    Approve
+                  </button>
+                  <button className="link danger" onClick={() => remove(p)}>
+                    delete
+                  </button>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {big && (
+        <div className="viewer" onClick={() => setBig(null)}>
+          <img src={big} alt="" />
+          <button className="viewer-close" aria-label="Close">
+            ×
+          </button>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function Account({ user, profile, spots = [], onSpotsChange, onProfileChange, onRequireLogin }) {
   const [username, setUsername] = useState(profile?.username ?? '')
   const [saved, setSaved] = useState(false)
@@ -251,6 +348,7 @@ export default function Account({ user, profile, spots = [], onSpotsChange, onPr
       </section>
 
       {profile?.is_admin && <ReviewQueue spots={spots} onChange={onSpotsChange} setError={setError} />}
+      {profile?.is_admin && <PhotoReview onChange={onSpotsChange} setError={setError} />}
 
       {profile?.is_superadmin && <AdminManager user={user} setError={setError} />}
 
